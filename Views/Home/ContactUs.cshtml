@@ -1,0 +1,184 @@
+﻿
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+@{
+    ViewData["Title"] = "ContactUs";
+}
+
+<style>
+    .zoom-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .zoomLens {
+        position: absolute;
+        border: 2px solid #000;
+        width: 150px;
+        height: 150px;
+        display: none;
+        opacity: 0.4;
+        background: white;
+        pointer-events: none;
+    }
+
+    #zoomResult {
+       
+        position: absolute;
+        left: 200px; 
+        top: 0;
+        width: 400px;
+        height: 400px;
+        border: 1px solid #000;
+        background-repeat: no-repeat;
+        display: none;
+        z-index: 999;
+    }
+    
+    .overlay {
+        background: #E8E8E8;
+        min-height: 100vh;
+        padding: 20px;
+    }
+
+    .table{
+        background-color:white;
+      
+    }
+  
+    
+</style>
+
+<div class="overlay">
+    <input type="hidden" id="hdnId" value="0" />
+
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-3">
+                        <label>Name</label>
+                        <input type="text" class="form-control" id="txt_name" />
+                    </div>
+                    <div class="col-sm-3">
+                        <label>Email</label>
+                        <input type="text" class="form-control" id="txt_email" />
+                        <div id="otpBox" style="display:none;">
+                            <input type="text" id="otpInput" name="otp" placeholder="Enter OTP">
+                            <button type="button" id="btnVerifyEmail"style="background-color:brown; color:white;margin-top:10px;border-radius:5px;border:1px solid black; " >Verify Email</button>
+                            <input type="hidden" id="emailVerified" value="false">
+                        </div>
+                        <p id="otpMessage"></p>
+                    </div>
+                    <div class="col-sm-3">
+                        <label>Number</label>
+                        <input type="text" class="form-control" id="txt_number" maxlength="10" />
+                    </div>
+                    <div class="col-sm-3">
+                        <label>Message</label>
+                        <input type="text" class="form-control" id="txt_message" />
+                    </div>
+                    <div class="col-md-3">
+                        <label>Image</label>
+                        <div style=" gap:20px; align-items:flex-start;">
+
+                            <div class="zoom-container">
+                            <input type="file" id="imageFile" class="form-control" accept="image/*" />
+                            <img id="previewImg" style="display:none;width:160px;height:160px;margin-top:5px;border-radius:6px;object-fit:cover;" />
+                            <div id="zoomLens" class="zoomLens"></div>
+                        </div>
+                       
+                            <div id="zoomResult"></div>
+                    </div>
+                    </div>
+                    <div class="col-sm-3">
+                        <button type="button" class="btn btn-sm btn-info mt-4" style="width:100px;height:37px;font-size:19px;color:aliceblue;font-weight:600;border-radius:6px;border:1px solid #277373" onclick="SaveStudentData();">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body mt-3">
+            <div class="row">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Sr No</th>
+                            <th>Student Name</th>
+                            <th>Email</th>
+                            <th>Number</th>
+                            <th>Image</th>
+                            <th>Message</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tblRegistration"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="~/ProjectJS/ContactUs.js" asp-append-version="true"></script>
+
+    <script>
+      
+        const previewImgEl = document.getElementById('previewImg');
+        const lensPreview = document.getElementById('zoomLens');
+        const resultPreview = document.getElementById('zoomResult');
+      
+
+        $('#imageFile').on('change', function () {
+            var file = this.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImgEl.src = e.target.result;
+                    previewImgEl.style.display = 'block';
+                    highResPreview = e.target.result;
+                    resultPreview.style.backgroundImage = `url('${highResPreview}')`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+   
+        previewImgEl.addEventListener('mouseenter', () => {
+            lensPreview.style.display = 'block';
+            resultPreview.style.display = 'block';
+        });
+        previewImgEl.addEventListener('mouseleave', () => {
+            lensPreview.style.display = 'none';
+            resultPreview.style.display = 'none';
+        });
+        previewImgEl.addEventListener('mousemove', moveLensPreview);
+        lensPreview.addEventListener('mousemove', moveLensPreview);
+
+        function moveLensPreview(e) {
+            e.preventDefault();
+            const rect = previewImgEl.getBoundingClientRect();
+            let x = e.pageX - rect.left - window.pageXOffset;
+            let y = e.pageY - rect.top - window.pageYOffset;
+
+            let lensX = x - lensPreview.offsetWidth / 2;
+            let lensY = y - lensPreview.offsetHeight / 2;
+
+            if (lensX > previewImgEl.width - lensPreview.offsetWidth) lensX = previewImgEl.width - lensPreview.offsetWidth;
+            if (lensX < 0) lensX = 0;
+            if (lensY > previewImgEl.height - lensPreview.offsetHeight) lensY = previewImgEl.height - lensPreview.offsetHeight;
+            if (lensY < 0) lensY = 0;
+
+            lensPreview.style.left = lensX + 'px';
+            lensPreview.style.top = lensY + 'px';
+
+            const cx = resultPreview.offsetWidth / lensPreview.offsetWidth;
+            const cy = resultPreview.offsetHeight / lensPreview.offsetHeight;
+
+            resultPreview.style.backgroundSize = `${previewImgEl.width * cx}px ${previewImgEl.height * cy}px`;
+            resultPreview.style.backgroundPosition = `-${lensX * cx}px -${lensY * cy}px`;
+        }
+    </script>
+}
